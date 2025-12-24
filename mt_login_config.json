@@ -1,0 +1,10 @@
+{
+    "allow_ui_changes": false,
+    "protected_windows": [],
+    "speed_settings": {
+        "focus_delay": 0.1,
+        "key_delay": 0.02,
+        "form_open_delay": 0.2,
+        "field_delay": 0.04
+    }
+} 
