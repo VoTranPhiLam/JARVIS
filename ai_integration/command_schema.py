@@ -17,6 +17,7 @@ class CommandType(Enum):
     LOGOUT_ACCOUNT = "LOGOUT_ACCOUNT"
     SWITCH_ACCOUNT = "SWITCH_ACCOUNT"
     LIST_ACCOUNTS = "LIST_ACCOUNTS"
+    QUERY_ACCOUNT = "QUERY_ACCOUNT"  # Query thông tin về 1 hoặc nhiều account
     SCAN_TERMINALS = "SCAN_TERMINALS"
     CHECK_STATUS = "CHECK_STATUS"
     REQUEST_INFO = "REQUEST_INFO"
@@ -61,6 +62,10 @@ class CommandSchema:
     login: Optional[str] = None
     password: Optional[str] = None
     server: Optional[str] = None
+
+    # === QUERY FIELDS (for QUERY_ACCOUNT action) ===
+    query: Optional[str] = None  # Text search query
+    query_params: Optional[Dict[str, str]] = None  # Additional query parameters
 
     # === SAFETY FIELDS ===
     requires_confirmation: bool = False  # Yêu cầu xác nhận từ user?

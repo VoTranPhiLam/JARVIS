@@ -2,11 +2,13 @@
 Account Manager for JARVIS
 
 Manages MT4/MT5 account data
+Supports Google Sheets integration
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import json
 import os
+from .sheets_manager import SheetsManager, sheets_account_to_account_dict
 
 
 class Account:
@@ -53,17 +55,25 @@ class AccountManager:
     Manages trading accounts
 
     Features:
-    - Load/save accounts
+    - Load/save accounts from JSON
+    - Google Sheets integration
     - Add/remove accounts
-    - Search accounts
+    - Search and query accounts
     """
 
-    def __init__(self, data_file: Optional[str] = None):
+    def __init__(
+        self,
+        data_file: Optional[str] = None,
+        use_sheets: bool = False,
+        credentials_path: Optional[str] = None
+    ):
         """
         Initialize Account Manager
 
         Args:
             data_file: Path to accounts data file (JSON)
+            use_sheets: Enable Google Sheets integration
+            credentials_path: Path to Google credentials.json
         """
         self.data_file = data_file or os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -72,6 +82,13 @@ class AccountManager:
             "accounts.json"
         )
         self.accounts: List[Account] = []
+        self.use_sheets = use_sheets
+        self.sheets_manager: Optional[SheetsManager] = None
+
+        # Initialize Sheets Manager if enabled
+        if use_sheets:
+            self.sheets_manager = SheetsManager(credentials_path)
+
         self.load_accounts()
 
     def load_accounts(self):
@@ -171,6 +188,225 @@ class AccountManager:
         if account:
             account.status = status
             self.save_accounts()
+
+    # ========== GOOGLE SHEETS METHODS ==========
+
+    def connect_sheets(
+        self,
+        sheet_url: str,
+        worksheet_name: str = "Sheet1",
+        header_row: int = 1
+    ) -> bool:
+        """
+        Kết nối đến Google Sheets
+
+        Args:
+            sheet_url: URL của Google Sheet
+            worksheet_name: Tên worksheet
+            header_row: Dòng chứa header
+
+        Returns:
+            True nếu kết nối thành công
+        """
+        if not self.sheets_manager:
+            self.sheets_manager = SheetsManager()
+
+        return self.sheets_manager.connect(sheet_url, worksheet_name, header_row)
+
+    def load_from_sheets(
+        self,
+        data_range: Optional[str] = None,
+        merge_with_local: bool = True
+    ) -> bool:
+        """
+        Load accounts từ Google Sheets
+
+        Args:
+            data_range: Vùng dữ liệu (None = all)
+            merge_with_local: Merge với accounts local hay replace
+
+        Returns:
+            True nếu load thành công
+        """
+        if not self.sheets_manager:
+            print("❌ Chưa kết nối Google Sheets")
+            return False
+
+        # Load data from sheets
+        if not self.sheets_manager.load_data(data_range):
+            return False
+
+        # Get accounts from sheets
+        sheets_accounts = self.sheets_manager.get_accounts()
+
+        # Convert to Account objects
+        new_accounts = []
+        for sheet_acc in sheets_accounts:
+            try:
+                # Convert from sheets format to standard format
+                acc_dict = sheets_account_to_account_dict(sheet_acc)
+
+                # Create Account object
+                account = Account(
+                    login=acc_dict.get('login', ''),
+                    broker=acc_dict.get('broker', 'Unknown'),
+                    platform=acc_dict.get('platform', 'MT4'),
+                    server=acc_dict.get('server', ''),
+                    password=acc_dict.get('password'),
+                    name=acc_dict.get('name'),
+                    status=acc_dict.get('status', 'inactive')
+                )
+
+                # Validate có login không
+                if account.login:
+                    new_accounts.append(account)
+
+            except Exception as e:
+                print(f"⚠️ Lỗi khi convert account: {str(e)}")
+                continue
+
+        # Merge or replace
+        if merge_with_local:
+            # Merge: add new accounts, update existing
+            for new_acc in new_accounts:
+                existing = self.find_account(new_acc.login, new_acc.broker)
+                if existing:
+                    # Update existing
+                    existing.server = new_acc.server
+                    existing.platform = new_acc.platform
+                    existing.password = new_acc.password or existing.password
+                    existing.name = new_acc.name or existing.name
+                else:
+                    # Add new
+                    self.accounts.append(new_acc)
+        else:
+            # Replace all
+            self.accounts = new_accounts
+
+        # Save to JSON
+        self.save_accounts()
+
+        print(f"✅ Đã load {len(new_accounts)} accounts từ Google Sheets")
+        return True
+
+    def refresh_from_sheets(self) -> bool:
+        """
+        Refresh accounts từ Google Sheets
+
+        Returns:
+            True nếu refresh thành công
+        """
+        if not self.sheets_manager:
+            return False
+
+        if self.sheets_manager.refresh():
+            return self.load_from_sheets(merge_with_local=True)
+
+        return False
+
+    def search_accounts(
+        self,
+        query: Optional[str] = None,
+        broker: Optional[str] = None,
+        platform: Optional[str] = None,
+        login: Optional[str] = None
+    ) -> List[Account]:
+        """
+        Search accounts với nhiều filters
+
+        Args:
+            query: Text search (tìm trong tất cả fields)
+            broker: Filter theo broker
+            platform: Filter theo platform (MT4/MT5)
+            login: Filter theo login ID
+
+        Returns:
+            List of matching accounts
+        """
+        results = self.accounts.copy()
+
+        # Filter by login
+        if login:
+            results = [acc for acc in results if login.lower() in acc.login.lower()]
+
+        # Filter by broker
+        if broker:
+            results = [acc for acc in results if broker.lower() in acc.broker.lower()]
+
+        # Filter by platform
+        if platform:
+            results = [acc for acc in results if platform.upper() in acc.platform.upper()]
+
+        # Text search
+        if query:
+            query_lower = query.lower()
+            results = [
+                acc for acc in results
+                if (query_lower in acc.login.lower() or
+                    query_lower in acc.broker.lower() or
+                    query_lower in acc.server.lower() or
+                    (acc.name and query_lower in acc.name.lower()))
+            ]
+
+        return results
+
+    def get_account_info(self, login: str, broker: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Lấy thông tin chi tiết của 1 account
+
+        Args:
+            login: Login ID
+            broker: Broker name (optional)
+
+        Returns:
+            Dict chứa thông tin account hoặc None
+        """
+        # Tìm account
+        if broker:
+            account = self.find_account(login, broker)
+        else:
+            # Tìm login trong tất cả brokers
+            matches = [acc for acc in self.accounts if acc.login == login]
+            account = matches[0] if matches else None
+
+        if account:
+            return {
+                "login": account.login,
+                "broker": account.broker,
+                "platform": account.platform,
+                "server": account.server,
+                "name": account.name,
+                "status": account.status,
+                "has_password": bool(account.password)
+            }
+
+        return None
+
+    def get_stats(self) -> Dict[str, Any]:
+        """
+        Lấy thống kê về accounts
+
+        Returns:
+            Dict chứa stats
+        """
+        stats = {
+            "total": len(self.accounts),
+            "by_platform": {},
+            "by_broker": {},
+            "by_status": {}
+        }
+
+        for acc in self.accounts:
+            # By platform
+            stats["by_platform"][acc.platform] = stats["by_platform"].get(acc.platform, 0) + 1
+
+            # By broker
+            stats["by_broker"][acc.broker] = stats["by_broker"].get(acc.broker, 0) + 1
+
+            # By status
+            stats["by_status"][acc.status] = stats["by_status"].get(acc.status, 0) + 1
+
+        return stats
 
 
 # Test

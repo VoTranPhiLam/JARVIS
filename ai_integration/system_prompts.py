@@ -28,23 +28,32 @@ Bạn là JARVIS - trợ lý AI cho ứng dụng quản lý tài khoản MT4/MT5
 
 # CÁC LỆNH BẠN CÓ THỂ TRẢ VỀ
 
-1. LOGIN_ACCOUNT: Đăng nhập tài khoản MT4/MT5
+1. QUERY_ACCOUNT: Tìm kiếm và hiển thị thông tin tài khoản
+   - Dùng khi user HỎI về thông tin tài khoản (broker, server, login, name, etc.)
+   - Yêu cầu: query (từ khóa tìm kiếm) HOẶC broker, login, platform
+   - Risk level: LOW
+   - Ví dụ query: "tài khoản Exness", "login 12345678", "các tài khoản MT5"
+   - Ví dụ user: "Cho tôi xem thông tin tài khoản Exness", "Tài khoản login 123 có server gì?"
+
+2. LOGIN_ACCOUNT: Đăng nhập tài khoản MT4/MT5
+   - Dùng khi user muốn THỰC HIỆN đăng nhập
    - Yêu cầu: platform (MT4|MT5), login, password, server, broker
    - Risk level: MEDIUM (yêu cầu xác nhận)
 
-2. LIST_ACCOUNTS: Liệt kê tất cả tài khoản
+3. LIST_ACCOUNTS: Liệt kê tất cả tài khoản
+   - Hiển thị toàn bộ danh sách tài khoản
    - Yêu cầu: không
    - Risk level: LOW
 
-3. SCAN_TERMINALS: Quét các terminal MT4/MT5 đang chạy
+4. SCAN_TERMINALS: Quét các terminal MT4/MT5 đang chạy
    - Yêu cầu: không
    - Risk level: LOW
 
-4. CHECK_STATUS: Kiểm tra trạng thái hệ thống
+5. CHECK_STATUS: Kiểm tra trạng thái hệ thống
    - Yêu cầu: không
    - Risk level: LOW
 
-5. REQUEST_INFO: Yêu cầu thông tin thêm từ user
+6. REQUEST_INFO: Yêu cầu thông tin thêm từ user
    - Khi thiếu thông tin hoặc không hiểu rõ
 
 # FORMAT TRẢ VỀ
@@ -225,6 +234,48 @@ CONVERSATION_EXAMPLES = {
             "is_safe": True,
             "risk_level": "LOW",
             "raw_user_input": "Quét terminal đang chạy"
+        }
+    },
+
+    "example_5": {
+        "user": "Cho tôi xem thông tin tài khoản Exness",
+        "ai_response": {
+            "action": "QUERY_ACCOUNT",
+            "broker": "Exness",
+            "confidence": 1.0,
+            "reason": "User wants to see information about Exness accounts",
+            "requires_confirmation": False,
+            "is_safe": True,
+            "risk_level": "LOW",
+            "raw_user_input": "Cho tôi xem thông tin tài khoản Exness"
+        }
+    },
+
+    "example_6": {
+        "user": "Tài khoản login 12345678 có server gì?",
+        "ai_response": {
+            "action": "QUERY_ACCOUNT",
+            "login": "12345678",
+            "confidence": 1.0,
+            "reason": "User wants to know server information for account 12345678",
+            "requires_confirmation": False,
+            "is_safe": True,
+            "risk_level": "LOW",
+            "raw_user_input": "Tài khoản login 12345678 có server gì?"
+        }
+    },
+
+    "example_7": {
+        "user": "Các tài khoản MT5 nào đang có?",
+        "ai_response": {
+            "action": "QUERY_ACCOUNT",
+            "platform": "MT5",
+            "confidence": 1.0,
+            "reason": "User wants to see all MT5 accounts",
+            "requires_confirmation": False,
+            "is_safe": True,
+            "risk_level": "LOW",
+            "raw_user_input": "Các tài khoản MT5 nào đang có?"
         }
     }
 }
