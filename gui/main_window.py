@@ -233,6 +233,52 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Scan Error", message)
             self.statusBar().showMessage("Scan failed")
 
+    def _handle_query_account(self, command: CommandSchema):
+        """
+        Handle QUERY_ACCOUNT command
+
+        Args:
+            command: QUERY_ACCOUNT command
+        """
+        try:
+            # Query accounts từ AccountManager
+            accounts = self.account_manager.search_accounts(
+                query=command.query,
+                broker=command.broker,
+                login=command.login,
+                platform=command.platform
+            )
+
+            if not accounts:
+                self.chat_widget.add_execution_result(
+                    True,
+                    "Không tìm thấy tài khoản nào phù hợp với yêu cầu."
+                )
+                return
+
+            # Format results
+            result_text = f"📋 Tìm thấy {len(accounts)} tài khoản:\n\n"
+            for i, acc in enumerate(accounts, 1):
+                result_text += f"{i}. {acc.broker} - Login: {acc.login}\n"
+                result_text += f"   Platform: {acc.platform}\n"
+                result_text += f"   Server: {acc.server}\n"
+                if acc.name:
+                    result_text += f"   Name: {acc.name}\n"
+                result_text += f"   Status: {acc.status}\n\n"
+
+            # Display results in chat
+            self.chat_widget.add_execution_result(True, result_text)
+
+            # Update status bar
+            self.statusBar().showMessage(f"✅ Query completed: {len(accounts)} account(s) found")
+
+        except Exception as e:
+            self.chat_widget.add_execution_result(
+                False,
+                f"Lỗi khi query accounts: {str(e)}"
+            )
+            self.statusBar().showMessage(f"❌ Query failed: {str(e)}")
+
     def _on_execute_command(self, command: CommandSchema):
         """
         Handle command execution from chat widget
@@ -240,6 +286,11 @@ class MainWindow(QMainWindow):
         Args:
             command: CommandSchema to execute
         """
+        # Handle QUERY_ACCOUNT directly (no need for MT executor)
+        if command.action == CommandType.QUERY_ACCOUNT.value:
+            self._handle_query_account(command)
+            return
+
         # Confirmation dialog for risky commands
         if command.requires_confirmation:
             reply = QMessageBox.question(

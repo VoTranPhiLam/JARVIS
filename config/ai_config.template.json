@@ -1,0 +1,54 @@
+{
+  "ai_provider": "mock",
+  "openai": {
+    "api_key": "YOUR_OPENAI_API_KEY_HERE",
+    "model": "gpt-3.5-turbo",
+    "temperature": 0.3,
+    "max_tokens": 1000
+  },
+  "google_sheets": {
+    "enabled": false,
+    "sheet_url": "YOUR_GOOGLE_SHEET_URL_HERE",
+    "worksheet_name": "Sheet1",
+    "header_row": 1,
+    "auto_load_on_startup": false
+  },
+  "anthropic": {
+    "api_key": "YOUR_ANTHROPIC_API_KEY_HERE",
+    "model": "claude-3-sonnet-20240229",
+    "max_tokens": 1000
+  },
+  "ollama": {
+    "base_url": "http://localhost:11434",
+    "model": "llama2"
+  },
+  "mt_executor": {
+    "speed_settings": {
+      "focus_delay": 0.5,
+      "key_delay": 0.1,
+      "form_open_delay": 1.0,
+      "field_delay": 0.2
+    }
+  },
+  "security": {
+    "strict_mode": true,
+    "require_confirmation_for_login": true,
+    "allowed_brokers": [
+      "exness",
+      "xm",
+      "fbs",
+      "admirals",
+      "ic markets",
+      "pepperstone",
+      "fxtm",
+      "hotforex",
+      "roboforex",
+      "octafx",
+      "alpari",
+      "tickmill",
+      "forex4you",
+      "tradingpro",
+      "skilling"
+    ]
+  }
+}

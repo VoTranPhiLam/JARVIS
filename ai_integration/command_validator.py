@@ -136,6 +136,8 @@ class CommandValidator:
             return self._validate_login_action(command)
         elif action == CommandType.LIST_ACCOUNTS.value:
             return self._validate_list_action(command)
+        elif action == CommandType.QUERY_ACCOUNT.value:
+            return self._validate_query_action(command)
         elif action == CommandType.SCAN_TERMINALS.value:
             return self._validate_scan_action(command)
         elif action == CommandType.CHECK_STATUS.value:
@@ -185,6 +187,22 @@ class CommandValidator:
         # No specific requirements
         return True, "Valid list command"
 
+    def _validate_query_action(self, command: CommandSchema) -> Tuple[bool, str]:
+        """Validate QUERY_ACCOUNT command"""
+        # QUERY_ACCOUNT needs at least one parameter to query
+        has_param = any([
+            command.query,
+            command.broker,
+            command.login,
+            command.platform
+        ])
+
+        if not has_param:
+            return False, "QUERY_ACCOUNT requires at least one query parameter (query, broker, login, or platform)"
+
+        # QUERY is always safe (read-only)
+        return True, "Valid query command"
+
     def _validate_scan_action(self, command: CommandSchema) -> Tuple[bool, str]:
         """Validate SCAN_TERMINALS command"""
         # No specific requirements
@@ -207,8 +225,9 @@ class CommandValidator:
         if action in [CommandType.LOGIN_ACCOUNT.value, CommandType.SWITCH_ACCOUNT.value]:
             command.risk_level = "MEDIUM"
             command.requires_confirmation = True
-        elif action in [CommandType.LIST_ACCOUNTS.value, CommandType.SCAN_TERMINALS.value,
-                       CommandType.CHECK_STATUS.value, CommandType.REQUEST_INFO.value]:
+        elif action in [CommandType.LIST_ACCOUNTS.value, CommandType.QUERY_ACCOUNT.value,
+                       CommandType.SCAN_TERMINALS.value, CommandType.CHECK_STATUS.value,
+                       CommandType.REQUEST_INFO.value]:
             command.risk_level = "LOW"
             command.requires_confirmation = False
         else:

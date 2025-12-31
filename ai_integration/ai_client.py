@@ -209,6 +209,35 @@ class AIClient:
                 "raw_user_input": user_message
             }, ensure_ascii=False)
 
+        elif any(word in user_lower for word in ['thông tin', 'xem', 'có']) and not any(word in user_lower for word in ['đăng nhập', 'login', 'danh sách', 'list']):
+            # QUERY_ACCOUNT - Hỏi thông tin tài khoản
+            result = {
+                "action": "QUERY_ACCOUNT",
+                "confidence": 0.9,
+                "reason": "User wants to query account information",
+                "requires_confirmation": False,
+                "is_safe": True,
+                "risk_level": "LOW",
+                "raw_user_input": user_message
+            }
+
+            # Try to extract query parameters
+            login_match = re.search(r'\d{4,9}', user_message)
+            if login_match:
+                result["login"] = login_match.group()
+
+            broker_keywords = ['exness', 'xm', 'fbs', 'admirals']
+            broker = next((b for b in broker_keywords if b in user_lower), None)
+            if broker:
+                result["broker"] = broker.capitalize()
+
+            if "mt5" in user_lower:
+                result["platform"] = "MT5"
+            elif "mt4" in user_lower:
+                result["platform"] = "MT4"
+
+            return json.dumps(result, ensure_ascii=False)
+
         else:
             # Unknown command
             return json.dumps({
@@ -219,7 +248,7 @@ class AIClient:
                 "is_safe": True,
                 "risk_level": "LOW",
                 "metadata": {
-                    "question": "Xin lỗi, tôi không hiểu yêu cầu của bạn. Bạn có thể nói rõ hơn không?\n\nVí dụ:\n- Đăng nhập tài khoản Exness MT5 login 12345678\n- Xem danh sách tài khoản\n- Quét terminal đang chạy"
+                    "question": "Xin lỗi, tôi không hiểu yêu cầu của bạn. Bạn có thể nói rõ hơn không?\n\nVí dụ:\n- Đăng nhập tài khoản Exness MT5 login 12345678\n- Xem danh sách tài khoản\n- Cho tôi xem thông tin tài khoản Exness\n- Quét terminal đang chạy"
                 },
                 "raw_user_input": user_message
             }, ensure_ascii=False)

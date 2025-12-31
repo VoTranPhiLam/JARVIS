@@ -62,6 +62,9 @@ class MTExecutor:
             elif action == CommandType.LIST_ACCOUNTS.value:
                 return True, "LIST_ACCOUNTS should be handled by GUI"
 
+            elif action == CommandType.QUERY_ACCOUNT.value:
+                return True, "QUERY_ACCOUNT should be handled by GUI"
+
             elif action == CommandType.CHECK_STATUS.value:
                 return self.check_status()
 
